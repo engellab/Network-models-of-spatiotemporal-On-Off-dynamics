@@ -11,5 +11,5 @@ This contains core code of the model analyses presented in [Shi et al, 2021](htt
 
 
 ## Where to get the data
-Associated raw data files located at [doi:10.6084/m9.figshare.16934326.v2](https://doi.org/10.6084/m9.figshare.16934326.v3).
+Associated raw data files located at [doi:10.6084/m9.figshare.16934326.v3](https://doi.org/10.6084/m9.figshare.16934326.v3).
 
