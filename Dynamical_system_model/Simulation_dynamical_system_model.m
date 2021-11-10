@@ -1,59 +1,83 @@
 %
-%CA driver
-%
-%excitable media
+%This is simulation code of dynamical system model
 
-
+% The size of network model is given by a n*n 2-d square lattice. Each node represents a unit, including activity variable and adaptation variable.
 n=256;
 
+%%%%%%%%%%%%%%%%%%% model parameters %%%%%%%%%%%%%%%%%%%%%%%
+% time-scale of adaptation variable  
 epsilon = 0.05;
-%W = 0.22; % 0.22 0.08
+% Strength of interaction between nearby units 
  W = 5*0.015;
-D =8*0.0025; % 0.02
+% Strength of gaussian noise 
+D =8*0.0025; 
+% constant term: a in the dynamical equation 
 a = 0.15*ones(n);
+% constant term: gamma in the dynamical equation 
 gamm = 0.55;
 
+% load initial condition of activity configuration of simulation. init.cells =  n*n  matrix, where each element represent the initial activity of one unit. init.inh =
+% n*n  matrix, where each element represent the initial adaptation variable activity of one unit.
 init = load('FHN_init.mat');
 cells = init.cells;
 inh = init.inh;
+
+
+% define variables used for each iteration
 sum = zeros(n);
 sum2=zeros(n);
-
 act_new=zeros(n,n);
+
 
 x = 2:n-1;
 y = 2:n-1;
 
 
-%%%%%%%%%%%%%%%%%%%
-dt = 0.01*0.5;
-%%%%%%%%%%%%%%%%%%%
 
+% Define size of time-step in simulation
+dt = 0.01*0.5;
+
+
+ 
+% Select samples in a 11*11 square for attention condition 
 ind1 = 69:1:79;
+% Select samples in a 11*11 square for control condition 
 ind2 = 175:1:185;
+
+% size of sample
 n_sample = length(ind1);
 
-%stim = zeros(n,n);
-%stim(50:100,50:100) = 0.2-0.05; % 0.26
-%stim(n-100:n-50,n-100:n-50) = 0.2-0.05; %0.26
+
+
+% Strength of stimulus
 stim=0.15*ones(n,n);
 
 
-
+% Strength of stimulus attentional input
 att = zeros(n,n);
-%att(50:100,50:100) = 0.04*0.2*0.2; %0.04
 att(50:100,50:100) = 0.04;
 s = stim + att;
 
-
+% number of trials in one-simulation
 num_trial = 50;
+
+% number of iterations in each trial
 num_iter = 3000;
 
+
+
+% Define time-series variable for sample unit in attetion condition 
 rate_att = zeros(num_trial,n_sample,n_sample,num_iter);
+% Define time-series variable for sample unit in control condition 
 rate_out = zeros(num_trial,n_sample,n_sample,num_iter);
+
 
 trace_att = zeros(n_sample,n_sample,num_iter);
 trace_out = zeros(n_sample,n_sample,num_iter);
+
+
+
+
 
 for iTrial = 1:num_trial
     
@@ -79,17 +103,7 @@ for iTrial = 1:num_trial
         % integrate activator and inhibitor
       %  act_new = cells + (cells - cells.^3 - inh + sum +s )*(dt/epsilon);
       
-  %  for ai=1:n
-  %        for aj=1:n
-  %            if  cells(ai,aj)>0.5
-  %            act_new(ai,aj)=cells(ai,aj)+(1-cells(ai,aj)-inh(ai,aj)+sum2(ai,aj)+s(ai,aj))*(dt/epsilon);
-  %            elseif cells(ai,aj)>-0.5
-  %            act_new(ai,aj)=cells(ai,aj)+(cells(ai,aj)-inh(ai,aj)+sum2(ai,aj)+s(ai,aj))*(dt/epsilon);
-  %            else
-  %            act_new(ai,aj)=cells(ai,aj)+(-1-cells(ai,aj)-inh(ai,aj)+sum2(ai,aj)+s(ai,aj))*(dt/epsilon);
-  %            end
-  %        end
-  %  end
+
     
     z1=find(cells>0.5);
     act_new(z1)=cells(z1)+(1-cells(z1)-inh(z1)+sum2(z1)+s(z1))*(dt/epsilon);
