@@ -1,27 +1,8 @@
-%num_bin = 500;
-%num_trial = 100;
-%deltaT =num_bin*dt;
-%deltaT =0.2;
+%%%%%%%% Computation of noise correlation with On/Off rate sampled from recording data
 
-%ind1 = 69:1:79;
-%ind2 = 175:1:185;
-%n_sample = length(ind1);
-
-
-
-
-%t_att_0 = squeeze( mean(rate_att(:,:,:,end-num_bin:end),4) );
-%t_out_0 = squeeze( mean(rate_out(:,:,:,end-num_bin:end),4) );
-
-%t_att_1 = (t_att_0+0.65)/1.3;
-%t_out_1 = (t_out_0+0.65)/1.3;
-
-
-%t_att_1 = heaviside(t_att_0);
-%t_out_1 = heaviside(t_out_0);
-
-
-
+%%%% 1. input of  simulation result: population On/Off phases: <S>
+% <S>= t_att_1 (attention condition)
+% <S>= t_out_1 (control condition)
 
 
 att_1=rate_att(:,:,:,end-num_bin:end);
@@ -35,25 +16,37 @@ t_att_1 = squeeze( mean(normal_att,4) );
 t_out_1 = squeeze( mean(normal_out,4) );
 
 
+%%%% 2. input of On/Off rate distriubtion from recording data:
+%  roff_cont: r_{off} in control condition 
+%  roff_att:  r_{off} in attention condition 
+%  ron_cont   r_{on}  in control condition 
+%  ron_att    r_{on}  in attention condition 
 
 
 
+% compute noise correlation with On/Off rate sampled from recording data, with fixed On/Off population phase <S>
+% To aviod insufficent sampling of On/Off rate, we reapat 10 times (num_resample=10)
 
 
 
+%%%%%%%%%%%%%%%%% noise correlation with resampled On/Off rate  across cortical column  %%%%%%%%%%%%
 
-
-%%%%%%%%%%%%%%%%% resample NC for distance >0 %%%%%%%%%%%%
-
-
+% iteration number of resampling
 num_resample=10;
 
+% noise correlation with resampled On/Off rate:
+% attention conidtion 
 NC_att_resample=zeros(61,num_resample);
+% control condition 
 NC_out_resample=zeros(61,num_resample);
 
+
+% iteration of resampling
 for i_resample=1:10
 
 
+
+%%%%%% generate random indices, and sample On/Off rate based on these indices 
 r_g1_off_cont=rand(11);
 r_g1_off_att=rand(11);
 r_g1_on_cont=rand(11);
@@ -107,25 +100,7 @@ end
 
 
 
-
-
-%for rtrial_delta_r_att_num=1:num_trial
-%   rtrial_delta_r_att(rtrial_delta_r_att_num,:,:)=delta_r_att;
-%end
-
-%for rtrial_delta_r_out_num=1:num_trial
-%    rtrial_delta_r_out(rtrial_delta_r_out_num,:,:)=delta_r_out;
-%end
-
-%for rtrial_r_off_att_num=1:num_trial
-%    rtrial_r_off_att(rtrial_r_off_att_num,:,:)=r_off_att;
-%end
-
-%for rtrial_r_off_out_num=1:num_trial
-%    rtrial_r_off_out(rtrial_r_off_out_num,:,:)=r_off_out;
-%end
-
-
+% Compuate Poisson rate based on rampled On/Off rates
 t_att_2 = t_att_1.*rtrial_delta_r_att + rtrial_r_off_att;
 t_out_2 = t_out_1.*rtrial_delta_r_out + rtrial_r_off_out;
 
@@ -134,14 +109,15 @@ t_att = t_att_2*deltaT;
 t_out = t_out_2*deltaT;
 
 
+
+% Compuate Poisson spikes based on rampled On/Off rates
 p_att = poissrnd(t_att);
 p_out = poissrnd(t_out);
 
-%p_att(isnan(p_att))=0;
-%p_out(isnan(p_out))=0;
 
 
 
+% Compuate noise correlation across cortical column 
 CorrDist_att=zeros(15000,2);
 CorrDist_out=zeros(15000,2);
 Corrind_att=1;
@@ -181,11 +157,7 @@ end
                
 SortCorrDist_out=sortrows(CorrDist_out(1:(Corrind_out-1),:));
 
-%histogram(SortCorrDist_att(:,2));
-%mean(SortCorrDist_att(:,2));
 
-%histogram(SortCorrDist_out(:,2));
-%mean(SortCorrDist_out(:,2));
 
 
 MeanCorrDist_att=zeros(length(unique(SortCorrDist_att(:,1))),2);
@@ -242,35 +214,14 @@ NC_out_resample(:,i_resample)=MeanCorrDist_out(:,2);
 end
 
 
-%plot(MeanCorrDist_att(:,1),MeanCorrDist_att(:,2))
-%plot(MeanCorrDist_out(:,1),MeanCorrDist_out(:,2))
-%plot(MeanCorrDist_out(1:50,1),MeanCorrDist_out(1:50,2)-MeanCorrDist_att(1:50,2))
-
-%f = fit(MeanCorrDist_out(1:50,1),MeanCorrDist_out(1:50,2)-MeanCorrDist_att(1:50,2),'exp1');
-%plot(f,MeanCorrDist_out(1:50,1),MeanCorrDist_out(1:50,2)-MeanCorrDist_att(1:50,2));
-
-%plot(MeanCorrDist_out(2:30,1),MeanCorrDist_out(2:30,2),MeanCorrDist_out(2:30,1),MeanCorrDist_att(2:30,2))
-%legend('out of attention','attention')
-
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%Correlation within single cortical column
 
 
 
 
-%single_att_1 = squeeze( mean(rate_att(:,:,:,end-num_bin:end),4) );
-%single_out_1 = squeeze( mean(rate_out(:,:,:,end-num_bin:end),4) );
-
-%single_att = (single_att+0.65)/1.3;
-%single_out = (single_out+0.65)/1.3;
+%%%%%%%%%%%%%%%%% noise correlation with resampled On/Off rate  with a single cortical column  %%%%%%%%%%%%
 
 
-%single_att = heaviside(single_att_1);
-%single_out = heaviside(single_out_1);
-
-
-
+%%%%%%%%% On/Off population phases: 
 
 single_att_1=rate_att(:,:,:,end-num_bin:end);
 single_out_1=rate_out(:,:,:,end-num_bin:end);
@@ -290,9 +241,7 @@ single_out = squeeze( mean(normal_single_out,4) );
 
 
 
-
-
-
+% iteration of resampling
 for i_resample=1:num_resample
 
 
@@ -316,41 +265,10 @@ SinDist_out=zeros(1,(num_single*num_single-num_single)/2*n_sample*n_sample);
 for sk=1:num_single
     
  
-    
- %   sample  = rand(n_sample);
-    
- %   r1_t_on  = ron_cont(ceil(sample *31*8*16));
- %   r1_t_off  = roff_cont(ceil(sample *31*8*16));
-    
-    
-    
- %   r2_t_on  = ron_att(ceil(sample *31*8*16));
- %   r2_t_off  = roff_att(ceil(sample *31*8*16));
-    
-    
+ 
+ 
+ %%%%%% generate random indices, and sample On/Off rate based on these indices    
 
-    
-    
- %   dr1_t = (r1_t_on - r1_t_off);
-    
- %   dr2_t = (r2_t_on - r2_t_off);
-    
- %   F_single_att=zeros(num_trial,n_sample,n_sample);
- %   F_single_out=zeros(num_trial,n_sample,n_sample);
-    
- % for t=1:num_trial  
- %  for i=1:n_sample
-     
- %     for j=1:n_sample
-          
-  %       F_single_out(t,i,j)=(single_att(t,i,j)*dr1_t(i,j)+r1_t_off(i,j))*deltaT;
- %        F_single_att(t,i,j)=(single_att(t,i,j)*dr2_t(i,j)+r2_t_off(i,j))*deltaT; 
-  %    end
-      
-  % end
-  %end
-    
-   
    sample  = rand(n_sample);
     
     r1_t_on  = ron_cont(ceil(sample *31*8*16));
@@ -394,9 +312,7 @@ for sk=1:num_single
   
     
     
-%F_single_att=(single_att*(mean(ron_att)-mean(roff_att))+mean(roff_att))*deltaT;
-%F_single_out=(single_out*(mean(ron_cont)-mean(roff_cont))+mean(roff_cont))*deltaT;
-
+% generate Poisson spikes 
  
 psingle_att(:,:,:,sk) = poissrnd(F_single_att);
 psingle_out(:,:,:,sk) = poissrnd(F_single_out);
@@ -435,6 +351,7 @@ NC_out_resample(1,i_resample)= mean(SinDist_out);
 end
 
 
+%%%%%%%%%%%% average noise correlations obtained from each iteration of resampling %%%%%%%%%%%%%%
 
 MeanCorrDist_att(:,2)=mean(NC_att_resample,2);
 MeanCorrDist_out(:,2)=mean(NC_out_resample,2);
@@ -442,16 +359,15 @@ MeanCorrDist_out(:,2)=mean(NC_out_resample,2);
 
 
 
+
+
+%%%%%%%%%%%%% plot noise correlation as a function of distance %%%%%%%%%%%%%%%
 figure(2)
 
 
 plot(MeanCorrDist_out(1:30,1),MeanCorrDist_out(1:30,2),MeanCorrDist_out(1:30,1),MeanCorrDist_att(1:30,2))
-legend('out of attention','attention')
+legend('control','attention')
 
 
 
-figure(3)
 
-
-plot(MeanCorrDist_out(1:30,1),NC_out_resample(1:30,1),MeanCorrDist_out(1:30,1),NC_att_resample(1:30,1))
-legend('out of attention','attention')
