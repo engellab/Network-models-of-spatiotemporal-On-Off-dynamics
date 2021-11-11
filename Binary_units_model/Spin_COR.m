@@ -1,7 +1,26 @@
 
+%This is simulation code of reduced binary-units system model
+
+% The size of network model is given by a n*n 2-d square lattice. Each node represents a binary unit.
 n=256;
 
-%stimulus and attention condition
+
+%%%%%%%%%% Part I: Model Simulation %%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%% model parameters %%%%%%%%%%%%%%%%%%%%%%%
+
+
+% Transition rate of each unit:       r_{off to on}= alpha_1 + beta_1 ( sum of nearby units )
+%                                     r_{on to off}= alpha_2 - beta_2 ( sum of nearby units ) 
+%
+%
+%                                     r_{off to on} (control condition)= stim_alpha_1 + stim_beta_1 ( sum of nearby units )
+%                                     r_{on to off} (control condition)= stim_alpha_2 - stim_beta_2 ( sum of nearby units )
+%                                     r_{off to on} (attention condition)= attn_alpha_1 + attn_beta_1 ( sum of nearby units )
+%                                     r_{on to off} (attention condition)= attn_alpha_2 - atten_beta_2 ( sum of nearby units )
+%
+% units under attention condition: (50:100,50:100)
+% units under control   condition: (n-100:n-50,n-100:n-50)
 
 stim_alpha_1 = zeros(n,n);
 stim_alpha_2 = zeros(n,n);
@@ -26,8 +45,7 @@ attn_alpha_2 = zeros(n,n);
 attn_beta_1 = zeros(n,n);
 attn_beta_2 = zeros(n,n);
 
-%attn_alpha_1(50:100,50:100) = 1; 
-%attn_alpha_2(50:100,50:100) = -2;
+
 attn_beta_1(50:100,50:100) = -2;
 attn_beta_2(50:100,50:100) = -2;
 
@@ -42,16 +60,24 @@ alpha_2=2*(5*ones(n)+stim_alpha_2+attn_alpha_2);
 beta_1=2*(5*ones(n)+stim_beta_1+attn_beta_1);
 beta_2=2*(5*ones(n)+stim_beta_2+attn_beta_2);
 gamma=0.2*ones(n);
-%k=2;
+
+
+
 k=0;
 
 
-%load inital spin configuration
+
+
+
+
+%load inital binary-unit configuration for simulation. initial.spin= n*n  matrix, where each element represent the initial binary-state(0 or 1) of one unit.
+% spins = n*n matrix of binary unit variable in the model. The element has discrete value:0,1.
 
 initial = load('SPIN_init.mat');
 spins = initial.spin;
 
 
+% define summation of states of nearby units
 nearby_spin=zeros(n,n);
 
 
@@ -59,12 +85,15 @@ nearby_spin=zeros(n,n);
 
 
 
+% Select samples in a 11*11 square for attention condition 
 ind1 = 69:1:79;
+% Select samples in a 11*11 square for control condition 
 ind2 = 175:1:185;
 n_sample = length(ind1);
 
-
+% number of trials in each simulation
 num_trial = 100;
+% number of iteration in each trial
 num_iter = 1000;
 num_time=1000;
 
@@ -81,18 +110,21 @@ x = 2:n-1;
 y = 2:n-1;
 
 
-
+% size of time-step 
 dt=0.001;
 
 
 
 
+% Update activity of network in each trial:
+
 for iTrial = 1:num_trial
-    
+
+% In a given trial= iTrial, update activity of network in each iteration i:       
     for i=1:num_iter
         
         
-        %Summation of nearby units
+        %Summation of states of nearby units
         
          nearby_spin(x,y) = (spins(x,y-1) - spins(x,y)) + (spins(x,y+1) - spins(x,y)) + ...
             (spins(x-1, y) - spins(x, y)) + (spins(x+1,y) - spins(x,y));
@@ -110,7 +142,7 @@ for iTrial = 1:num_trial
             (spins(x-1, n) - spins(x, n)) + (spins(x+1,n) - spins(x,n));
 
     
-        %transition-rate matrix (n*n) for each spin
+        %transition-rate matrix (n*n) for each unit
         %Update transition rate
         R_spins=alpha_1+beta_1.*(nearby_spin-k*gamma)+spins.*((alpha_2-beta_2.*(nearby_spin-k*gamma))-(alpha_1+beta_1.*(nearby_spin-k*gamma)));
         
@@ -122,7 +154,7 @@ for iTrial = 1:num_trial
        
         
         
-        %Decide if unit on each site will make a transiton
+        %Decide if unit on each site will make a transiton based on transition matrix 
         for aind = 1:n
             for bind= 1:n
                 probind=rand;
@@ -138,19 +170,16 @@ end
     
         
 
-%Spike count generation
+%%%%%%%%%%%%%%%%%%Spike count generation from given On/Off population phases <S> %%%%%%%%%%%%%%%%%%
 
-delta_r_att = unifrnd(5,200,[11,11]);
-delta_r_out = unifrnd(5,200,[11,11]);
 
-r_off_att = unifrnd(5,50,[11,11]);
-r_off_out = unifrnd(5,50,[11,11]);
 
+% number of bins for a given Time-window
 num_bin = 200;
-%num_bin=50;
+
 
 deltaT =num_bin*dt;
-%deltaT =0.2;
+%deltaT =0.2; Time-window for computing noise correlation
 
 t_att = squeeze( mean(rate_att(:,:,:,end-num_bin:end),4) );
 t_out = squeeze( mean(rate_out(:,:,:,end-num_bin:end),4) );
@@ -178,19 +207,36 @@ end
 
 
 
+
+
+% constant On/Off firing rates: r_{on}=125 Hz, r_{off}=25 Hz 
+
 t_att=t_att*100+25;
 t_out=t_out*100+25;
 
-%t_att = t_att.*rtrial_delta_r_att + rtrial_r_off_att;
-%t_out = t_out.*rtrial_delta_r_out + rtrial_r_off_out;
 
 
+% Poisson rate = (r_{on} <S> + r_{off})*deltaT
 t_att = t_att*deltaT;
 t_out = t_out*deltaT;
 
 
+% spike counts from Poisson distribution 
 p_att = poissrnd(t_att);
 p_out = poissrnd(t_out);
+
+
+
+
+%%%%%%%%%% Part II: Computation of noise correlation  %%%%%%%%%%%%%
+
+
+%%%%%%%%%%  Computation of noise correlation across cortical column %%%%%%%%%%%%%
+
+
+%computate all pairs of correlation among 11*11 units in attention condition and control condition 
+
+
 
 CorrDist_att=zeros(15000,2);
 CorrDist_out=zeros(15000,2);
@@ -231,14 +277,12 @@ end
                
 SortCorrDist_out=sortrows(CorrDist_out(1:(Corrind_out-1),:));
 
-%histogram(SortCorrDist_att(:,2));
-%mean(SortCorrDist_att(:,2));
-
-%histogram(SortCorrDist_out(:,2));
-%mean(SortCorrDist_out(:,2));
 
 
-%Sort spike-count correlation as function of distance
+%compuate average noise for each distance in attention and control condition 
+% Define variables: MeanCorrDist_att(:,1)=spatial distance, MeanCorrDist_att(:,2)=average noise correlation in attention condition at specific distance 
+%                   MeanCorrDist_out(:,1)=spatial distance, MeanCorrDist_out(:,2)=average noise correlation in control condition at specific distance 
+
 
 MeanCorrDist_att=zeros(1+length(unique(SortCorrDist_att(:,1))),2);
 MeanCorrDist_out=zeros(1+length(unique(SortCorrDist_out(:,1))),2);
@@ -288,8 +332,12 @@ for kt=1:length(SortCorrDist_out(:,1))
     end
 end
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%Correlation within single cortical column
+%%%%%%%%%% Computation of noise correlation within a single column %%%%%%%%%%%%%
+
+%compuate average noise for each distance in attention and control condition 
+% Define variables: SinDist_att(:,1)= all pairs of noise correlation within a single cortical column in attention condition 
+%                   SinDist_out(:,1)= all pairs of noise correlation within a single cortical column in control condition 
+
 
 
 
@@ -306,6 +354,7 @@ single_att = single_att*deltaT;
 single_out = single_out*deltaT;
 
 
+%%%%%%% number of units within single cortical column
 num_single=10;
 
 psingle_att=zeros(num_trial,n_sample,n_sample,num_single);
@@ -344,18 +393,20 @@ end
     end
 end
 
+
+
+% mean of mean(SinDist_att) is avarage noise correlation at distance=0 in atttention condition
+% mean of mean(SinDist_out) is avarage noise correlation at distance=0 in control condition
+
 MeanCorrDist_att(1,2)= mean(SinDist_att);
 MeanCorrDist_out(1,2)= mean(SinDist_out);
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
-%plot(MeanCorrDist_att(:,1),MeanCorrDist_att(:,2))
-%plot(MeanCorrDist_out(:,1),MeanCorrDist_out(:,2))
-%plot(MeanCorrDist_out(1:50,1),MeanCorrDist_out(1:50,2)-MeanCorrDist_att(1:50,2))
 
-%f = fit(MeanCorrDist_out(1:50,1),MeanCorrDist_out(1:50,2)-MeanCorrDist_att(1:50,2),'exp1');
-%plot(f,MeanCorrDist_out(1:50,1),MeanCorrDist_out(1:50,2)-MeanCorrDist_att(1:50,2));
+%%%%%%%%%%% plot noise correlation as a function of distance %%%%%%%%%%%%%%%
+
+
 
 plot(MeanCorrDist_att(1:30,1),MeanCorrDist_att(1:30,2),MeanCorrDist_out(1:30,1),MeanCorrDist_out(1:30,2))
 title('Distance dependence of Spike-count correlation (Markov-Simulation)')
@@ -370,20 +421,4 @@ legend('Within attention','Out of attention')
 
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-%sequence
-%ax1 = subplot(2,1,1); % top subplot
-%plot(ax1,1:1000,squeeze(rate_att(1,2,3,1:1000)),'color','red','Linewidth',1.2)
-%title(ax1,'On-off transitin sequence (Simulation) (Attention)(alpha1=12, alpha2=6, beta1=4)')
-%ylabel(ax1,'Binary States')
-%xlabel(ax1,'Time (ms)')
-%ax2 = subplot(2,1,2); % bottom subplot
-%plot(ax2,1:1000,squeeze(rate_out(1,2,3,1:1000)),'color','blue','Linewidth',1.2)
-%ylabel(ax2,'Binary States')
-%xlabel(ax2,'Time (ms)')
-%title(ax2,'On-off transitin sequence (Simulation) (Out)(alpha1=12, alpha2=6, beta1=8)')
-%axis(ax1,[0 1000 -0.5 1.5])
-%axis(ax2,[0 1000 -0.5 1.5])
-%legend(ax1,'Attention, tau-off ~1/alpha1=83ms, tau-on ~1/alpha2=167ms ')
-%legend(ax2,'Out, tau-off ~1/alpha1=83ms, tau-on ~1/alpha2=167ms ')
