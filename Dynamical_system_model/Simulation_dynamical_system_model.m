@@ -4,6 +4,9 @@
 % The size of network model is given by a n*n 2-d square lattice. Each node represents a unit, including activity variable and adaptation variable.
 n=256;
 
+
+%%%%%%%%%% Part I: Model Simulation %%%%%%%%%%%%%
+
 %%%%%%%%%%%%%%%%%%% model parameters %%%%%%%%%%%%%%%%%%%%%%%
 % time-scale of adaptation variable  
 epsilon = 0.05;
@@ -84,7 +87,7 @@ for iTrial = 1:num_trial
 
 % In a given trial= iTrial, update activity of network in each iteration:    
     for i=1:num_iter
-        % activator diffusion
+        % interaction terms
         sum(x,y) = (cells(x,y-1) - cells(x,y)) + (cells(x,y+1) - cells(x,y)) + ...
             (cells(x-1, y) - cells(x, y)) + (cells(x+1,y) - cells(x,y));
 
@@ -102,11 +105,9 @@ for iTrial = 1:num_trial
 
         sum2 = W*sum;
 
-     % integrate activator and inhibitor
-      %  act_new = cells + (cells - cells.^3 - inh + sum +s )*(dt/epsilon);
-      
-
-    % piecewise linear function F( )
+     % update activity variable 
+     %  act_new [cells(t+1)] =  cells  + [ F( cells ) - inh + W*( interaction ) +  s ]*(dt/epsilon);
+     %  F(.) piecewise linear function   
     z1=find(cells>0.5);
     act_new(z1)=cells(z1)+(1-cells(z1)-inh(z1)+sum2(z1)+s(z1))*(dt/epsilon);
     z2=find(cells>-0.5 & cells<=0.5);
@@ -116,12 +117,12 @@ for iTrial = 1:num_trial
   
   
   
-  
-      
+        % update adaptation variable 
         inh2 =  inh + (gamm*cells - inh + a )*dt + sqrt(2*D*dt)*randn(n);
         cells = act_new;
         inh = inh2;
-
+        
+        % store activity time-series 
         trace_att(:,:,i) = cells(ind1, ind1); % stimulus, attened in
         trace_out(:,:,i) = cells(ind2, ind2); % stimulus, attened out
         
@@ -134,19 +135,15 @@ for iTrial = 1:num_trial
 end
 
 
-plot(1:size(trace_out,3),squeeze(trace_out(2,2,:)))
-%%
+%plot(1:size(trace_out,3),squeeze(trace_out(2,2,:)))
 
-delta_r_att = unifrnd(5,200,[11,11]);
-delta_r_out = unifrnd(5,200,[11,11]);
 
-r_off_att = unifrnd(5,50,[11,11]);
-r_off_out = unifrnd(5,50,[11,11]);
 
-%%
+
+%%%%%%%% number of time-bins associated with time-window=200 ms, scaled by 100ms On/Off durations.
 num_bin = 1300;
 
-%deltaT =num_bin*dt;
+%%%%%%%% time-window
 deltaT =0.2;
 
 
@@ -157,37 +154,25 @@ normal_att = heaviside(att_1);
 normal_out = heaviside(out_1);
 
 
+
+%%%%%%%%%% mean On-Off population phases in given time-window  <S>
 t_att = squeeze( mean(normal_att,4) );
 t_out = squeeze( mean(normal_out,4) );
 
 
-%t_att = (t_att+0.65)/1.3;
-%t_out = (t_out+0.65)/1.3;
 
 
-
+%%%%%%%%%% constant On/Off firing rates: r_{on}=130 Hz, r_{off}=50 Hz 
 
 rtrial_delta_r_att=50*ones(num_trial,11,11);
 rtrial_delta_r_out=50*ones(num_trial,11,11);
 rtrial_r_off_att=80*ones(num_trial,11,11);
 rtrial_r_off_out=80*ones(num_trial,11,11);
 
-%for rtrial_delta_r_att_num=1:num_trial
-%   rtrial_delta_r_att(rtrial_delta_r_att_num,:,:)=delta_r_att;
-%end
 
-%for rtrial_delta_r_out_num=1:num_trial
-%    rtrial_delta_r_out(rtrial_delta_r_out_num,:,:)=delta_r_out;
-%end
 
-%for rtrial_r_off_att_num=1:num_trial
-%    rtrial_r_off_att(rtrial_r_off_att_num,:,:)=r_off_att;
-%end
 
-%for rtrial_r_off_out_num=1:num_trial
-%    rtrial_r_off_out(rtrial_r_off_out_num,:,:)=r_off_out;
-%end
-
+%%%%%%%%%% Poisson firing rate  (r_{on} <S> + r_{off})*deltaT
 
 t_att = t_att.*rtrial_delta_r_att + rtrial_r_off_att;
 t_out = t_out.*rtrial_delta_r_out + rtrial_r_off_out;
@@ -197,10 +182,22 @@ t_att = t_att*deltaT;
 t_out = t_out*deltaT;
 
 
+%%%%%%%%%% Generate Poisson spikes
 p_att = poissrnd(t_att);
 p_out = poissrnd(t_out);
 
 
+
+
+
+
+%%%%%%%%%% Part II: Computation of noise correlation  %%%%%%%%%%%%%
+
+
+%%%%%%%%%%  Computation of noise correlation across cortical column %%%%%%%%%%%%%
+
+
+%computate all pairs of correlation among 11*11 units in attention condition and control condition 
 
 CorrDist_att=zeros(15000,2);
 CorrDist_out=zeros(15000,2);
@@ -241,11 +238,15 @@ end
                
 SortCorrDist_out=sortrows(CorrDist_out(1:(Corrind_out-1),:));
 
-%histogram(SortCorrDist_att(:,2));
-%mean(SortCorrDist_att(:,2));
 
-%histogram(SortCorrDist_out(:,2));
-%mean(SortCorrDist_out(:,2));
+
+
+
+
+
+%compuate average noise for each distance in attention and control condition 
+% Define variables: MeanCorrDist_att(:,1)=spatial distance, MeanCorrDist_att(:,2)=average noise correlation in attention condition at specific distance 
+%                   MeanCorrDist_out(:,1)=spatial distance, MeanCorrDist_out(:,2)=average noise correlation in control condition at specific distance 
 
 
 MeanCorrDist_att=zeros(length(unique(SortCorrDist_att(:,1))),2);
@@ -294,19 +295,13 @@ end
 
 
 
-%plot(MeanCorrDist_att(:,1),MeanCorrDist_att(:,2))
-%plot(MeanCorrDist_out(:,1),MeanCorrDist_out(:,2))
-%plot(MeanCorrDist_out(1:50,1),MeanCorrDist_out(1:50,2)-MeanCorrDist_att(1:50,2))
-
-%f = fit(MeanCorrDist_out(1:50,1),MeanCorrDist_out(1:50,2)-MeanCorrDist_att(1:50,2),'exp1');
-%plot(f,MeanCorrDist_out(1:50,1),MeanCorrDist_out(1:50,2)-MeanCorrDist_att(1:50,2));
-
-%plot(MeanCorrDist_out(2:30,1),MeanCorrDist_out(2:30,2),MeanCorrDist_out(2:30,1),MeanCorrDist_att(2:30,2))
-%legend('out of attention','attention')
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%Correlation within single cortical column
+%%%%%%%%%% Computation of noise correlation within a single column %%%%%%%%%%%%%
+
+%compuate average noise for each distance in attention and control condition 
+% Define variables: SinDist_att(:,1)= all pairs of noise correlation within a single cortical column in attention condition 
+%                   SinDist_out(:,1)= all pairs of noise correlation within a single cortical column in control condition 
 
 
 single_att_1=rate_att(:,:,:,end-num_bin:end);
@@ -323,17 +318,9 @@ single_att = squeeze( mean(normal_single_att,4) );
 single_out = squeeze( mean(normal_single_out,4) );
 
 
-%single_att = (single_att+0.65)/1.3;
-%single_out = (single_out+0.65)/1.3;
 
 
-%single_att = heaviside(single_att_1);
-%single_out = heaviside(single_out_1);
-
-
-
-
-
+% Poisson rate
 single_att=single_att*50+80;
 single_out=single_out*50+80;
 
@@ -341,6 +328,7 @@ single_att = single_att*deltaT;
 single_out = single_out*deltaT;
 
 
+%%%%%%% number of units within single cortical column
 num_single=10;
 
 psingle_att=zeros(num_trial,n_sample,n_sample,num_single);
@@ -379,112 +367,26 @@ end
     end
 end
 
+
+
+% mean of mean(SinDist_att) is avarage noise correlation at distance=0 in atttention condition
+% mean of mean(SinDist_out) is avarage noise correlation at distance=0 in control condition
+
 MeanCorrDist_att(1,2)= mean(SinDist_att);
 MeanCorrDist_out(1,2)= mean(SinDist_out);
 
 
+
+
+
+
+%%%%%%%%%%% plot noise correlation as a function of distance %%%%%%%%%%%%%%%
 figure(1)
 
 plot(MeanCorrDist_out(1:30,1),MeanCorrDist_out(1:30,2),MeanCorrDist_out(1:30,1),MeanCorrDist_att(1:30,2))
-legend('out of attention','attention')
-%plot(MeanCorrDist_out(1:30,1),MeanCorrDist_out(1:30,2)-MeanCorrDist_att(1:30,2))
+legend('control','attention')
 
 
 
 
-
-
-
-
-%%%%%%%%%%%%%%%%
-
-
-TSU=zeros(num_iter,1);
-TSD=zeros(num_iter,1);
- kcount=1;
-lcount=1;
-
-TSU2=zeros(num_iter,1);
-TSD2=zeros(num_iter,1);
- kcount2=1;
-lcount2=1;
-
-
-for xindex=1:11
-     for yindex=1:11
-
-
- state = heaviside(squeeze(rate_att(3,xindex,yindex,1:num_iter)))*2-1;
- state2 = heaviside(squeeze(rate_out(3,xindex,yindex,1:num_iter)))*2-1;
- 
- 
- 
-TDbegin=0;
-TDend=0;
-TUbegin=0;
-TUend=0;  
-
-TDbegin2=0;
-TDend2=0;
-TUbegin2=0;
-TUend2=0;  
-
-
-for i=1:(num_iter-1)
-    if (state(i,1) >= 0) && (state(i+1,1) <= 0)
-        TDbegin=i;
-        TUend=i;
-        if TUbegin>0
-            TSU(kcount,1)=i-TUbegin;
-            kcount=kcount+1;
-        end
-    elseif (state(i,1) <= 0) && (state(i+1,1) >= 0)
-        TDend=i;
-        TUbegin=i;
-        if TDbegin>0
-            TSD(lcount,1)=i-TDbegin;
-            lcount=lcount+1;
-        end
-    end
-end  
-
-
-
-for i=1:(num_iter-1)
-    if (state2(i,1) >= 0) && (state2(i+1,1) <= 0)
-        TDbegin2=i;
-        TUend2=i;
-        if TUbegin2>0
-            TSU2(kcount2,1)=i-TUbegin2;
-            kcount2=kcount2+1;
-        end
-    elseif (state2(i,1) <= 0) && (state2(i+1,1) >= 0)
-        TDend2=i;
-        TUbegin2=i;
-        if TDbegin2>0
-            TSD2(lcount2,1)=i-TDbegin2;
-            lcount2=lcount2+1;
-        end
-    end
-end  
-
-
-
-
-     end
-end
-
-
-%histogram(TSD(1:(lcount-1)))
-%histogram(TSD2(1:(lcount2-1)))
-%histogram(TSU(1:(kcount-1)))
-%histogram(TSU2(1:(kcount2-1)))
-
-
-
-
-mean(TSD(1:(lcount-1)))
-mean(TSD2(1:(lcount2-1)))
-mean(TSU(1:(kcount-1)))
-mean(TSU2(1:(kcount2-1)))
 
