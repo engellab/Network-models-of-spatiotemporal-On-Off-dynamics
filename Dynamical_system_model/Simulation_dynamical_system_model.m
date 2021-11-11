@@ -77,10 +77,12 @@ trace_out = zeros(n_sample,n_sample,num_iter);
 
 
 
-
+% Update activity of network in each trial:
 
 for iTrial = 1:num_trial
-    
+
+
+% In a given trial= iTrial, update activity of network in each iteration:    
     for i=1:num_iter
         % activator diffusion
         sum(x,y) = (cells(x,y-1) - cells(x,y)) + (cells(x,y+1) - cells(x,y)) + ...
@@ -100,11 +102,11 @@ for iTrial = 1:num_trial
 
         sum2 = W*sum;
 
-        % integrate activator and inhibitor
+     % integrate activator and inhibitor
       %  act_new = cells + (cells - cells.^3 - inh + sum +s )*(dt/epsilon);
       
 
-    
+    % piecewise linear function F( )
     z1=find(cells>0.5);
     act_new(z1)=cells(z1)+(1-cells(z1)-inh(z1)+sum2(z1)+s(z1))*(dt/epsilon);
     z2=find(cells>-0.5 & cells<=0.5);
@@ -134,16 +136,6 @@ end
 
 plot(1:size(trace_out,3),squeeze(trace_out(2,2,:)))
 %%
-%fileName = ['FHN_stat_rate_numTrial_' num2str(num_trial) '.mat'];
-%save(fileName,'rate_att','rate_out');
-
-
-%%
-%delta_r_att = unifrnd(5,200,[1,121]);
-%delta_r_out = unifrnd(5,200,[1,121]);
-
-%r_off_att = unifrnd(5,50,[1,121]);
-%r_off_out = unifrnd(5,50,[1,121]);
 
 delta_r_att = unifrnd(5,200,[11,11]);
 delta_r_out = unifrnd(5,200,[11,11]);
