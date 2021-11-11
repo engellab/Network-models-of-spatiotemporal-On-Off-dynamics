@@ -5,7 +5,7 @@
 
 This repository contains the code for the model simulations presented in :  
 
- **Yan-Liang Shi,  Nicholas A. Steinmetz,  Tirin Moore,  Kwabena Boahen,  and Tatiana A. Engel, Cortical state dynamics and selective attention define the spatial pattern of correlated variability in neocortex. Nat Commun (2021)**.
+ **Yan-Liang Shi,  Nicholas A. Steinmetz,  Tirin Moore,  Kwabena Boahen,  and Tatiana A. Engel. Cortical state dynamics and selective attention define the spatial pattern of correlated variability in neocortex. Nat Commun (2021)**.
 
 **Link:** [https://doi.org/10.1101/2020.09.02.279893](https://doi.org/10.1101/2020.09.02.279893).
 
