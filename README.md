@@ -13,7 +13,7 @@ This contains core code of the model analyses presented in :
 
 
 * Simulation code of a dynamical system network model of population On-Off dynamics   
-* Simulation code of binary-unit reduced network model of population On-Off dynamics  
+* Simulation code of binary-units reduced network model of population On-Off dynamics  
 * Computation of noise correlation based on simulation
 
 
