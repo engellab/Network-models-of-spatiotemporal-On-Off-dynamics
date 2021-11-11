@@ -1,5 +1,5 @@
 
-%This is simulation code of reduced binary-units system model
+%This is simulation code of reduced binary-units network model
 
 % The size of network model is given by a n*n 2-d square lattice. Each node represents a binary unit.
 n=256;
