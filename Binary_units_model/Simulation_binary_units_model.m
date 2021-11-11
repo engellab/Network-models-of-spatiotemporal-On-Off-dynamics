@@ -149,8 +149,10 @@ for iTrial = 1:num_trial
         
 
         %Traceing the sequence before the a new transition
-    rate_att(iTrial,:,:,i) = spins(ind1, ind1);% stimulus, attened in
-    rate_out(iTrial,:,:,i) = spins(ind2, ind2);% stimulus, attened out
+    % stimulus, attention 
+    rate_att(iTrial,:,:,i) = spins(ind1, ind1);
+    % stimulus, control 
+    rate_out(iTrial,:,:,i) = spins(ind2, ind2);
        
         
         
